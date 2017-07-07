@@ -1,0 +1,134 @@
+---
+title: "IPL Performance analysis R Notebook"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+
+```{r}
+library(dplyr)
+library(data.table)
+
+source("G:/ipl_csv/util.R")
+
+file_name<-list.files("G:/ipl_csv/ipl_csv/")
+
+##Create empty dataframe with the same datastructure of function is returning
+Player_Master_List <-(getplayingeleven(getmatchdata(file_name[2],"G:/ipl_csv/ipl_csv/"))[0,])
+
+##Copy Structure of the Batsman Details Table 
+Batsman_Match_Details_Table <-(get1stbatsmanmatchdetails(getmatchdata(filename = file_name[2],directory = "G:/ipl_csv/ipl_csv/"),getmatchdesc(filename = file_name[2],directory = "G:/ipl_csv/ipl_csv/"))[0,])
+str(Batsman_Match_Details_Table)
+
+##Copy Structure of the Bowler Details Table 
+Bowler_Match_Details_Table <-(get1stbowlermatchdetails(getmatchdata(filename = file_name[2],directory = "G:/ipl_csv/ipl_csv/"),getmatchdesc(filename = file_name[2],directory = "G:/ipl_csv/ipl_csv/"))[0,])
+str(Bowler_Match_Details_Table)
+
+##Copy Structure of the Bowler Details Table 
+##getmatchscorewicket<-getmatchscorewicket(getmatchdata(file_name[2],"G:/ipl_csv/ipl_csv/"))[0,]
+
+for(i in 2:length(file_name)){
+    Player_Master_List<-getplayingeleven(getmatchdata(file_name[2],"G:/ipl_csv/ipl_csv/"))
+
+    ##  Retriving 1st Inning Batsman Data
+  Batsman_Match_Details_Table <-bind_rows(Batsman_Match_Details_Table,get1stbatsmanmatchdetails(getmatchdata(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/"),getmatchdesc(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/")))
+
+  ##  Appending 2nd Inning Batsman Data
+  Batsman_Match_Details_Table <-bind_rows(Batsman_Match_Details_Table,get2ndbatsmanmatchdetails(getmatchdata(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/"),getmatchdesc(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/")))
+
+    ##  Retriving 2nd Inning Bowler Data
+  Bowler_Match_Details_Table <-bind_rows(Bowler_Match_Details_Table,get1stbowlermatchdetails(getmatchdata(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/"),getmatchdesc(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/")))
+
+    ##  Appednig 1st Inning Bowler Data
+  Bowler_Match_Details_Table <-bind_rows(Bowler_Match_Details_Table,get2ndbowlermatchdetails(getmatchdata(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/"),getmatchdesc(filename = file_name[i],directory = "G:/ipl_csv/ipl_csv/")))
+}
+
+
+# Get all player list from the match list
+Player_Master_List<-unique(Player_Master_List %>%
+  arrange(team_name,players_names))
+unique(Player_Master_List$players_name)
+
+##Get overall performance of Batsman
+overallbatsmanmatchdetails<-getoverallbatsmanperformancedetails(Batsman_Match_Details_Table)
+str(overallbatsmanmatchdetails)
+
+##Sort overall performance based on Run made by Batsman
+overallbatsmanmatchdetails<- overallbatsmanmatchdetails[order(overallbatsmanmatchdetails$Runs,decreasing = TRUE),]
+
+head(overallbatsmanmatchdetails)
+
+# Prepare the Batsman list who batted for their team
+BATSMAN_BEST_PERFORMANCE<-merge(Batsman_Match_Details_Table, Player_Master_List, by.x = "BATSMAN",by.y = "players_names")
+
+#Sort dataframe according to their scored runs
+BATSMAN_BEST_PERFORMANCE<- BATSMAN_BEST_PERFORMANCE[order(BATSMAN_BEST_PERFORMANCE$Score,decreasing = TRUE),]
+#Sort dataframe according to Player Name
+BATSMAN_BEST_PERFORMANCE<- BATSMAN_BEST_PERFORMANCE[order(BATSMAN_BEST_PERFORMANCE$BATSMAN,decreasing = FALSE),]
+
+#Tag best performance of the player
+FIRST=!duplicated(BATSMAN_BEST_PERFORMANCE$BATSMAN)
+
+#Remove other performance entries of the player
+BATSMAN_BEST_PERFORMANCE<-BATSMAN_BEST_PERFORMANCE[FIRST,]
+
+
+##Combine batsman overall performance with Best performance details
+overallbatsmanmatchdetails<-merge(overallbatsmanmatchdetails, BATSMAN_BEST_PERFORMANCE, by.x = "BATSMAN",by.y = "BATSMAN")
+
+colnames(overallbatsmanmatchdetails)
+names(overallbatsmanmatchdetails)<-c("BATSMAN","Mat","Inn","Total_Runs","HS","Total_Ball_Faced","Overall_Average","Total_Fours","Total_Sixs","Overall_SR","Hundreds","Fiftys","Duck_Out","BBM_Runs","BBM_BF","BBM_Fours","BBM_Sixs","BBM_SR","Opposition","Ground","Match_Date","Match_Result","Team_Name")
+
+overallbatsmanmatchdetails<-overallbatsmanmatchdetails[,-c(15,16,17,19,20,21,22)]
+
+overallbatsmanmatchdetails<- overallbatsmanmatchdetails[order(overallbatsmanmatchdetails$Total_Runs,decreasing = TRUE),]
+
+head(overallbatsmanmatchdetails)
+
+# Prepare the Bowler list who bowled for their team
+BOWLER_BEST_PERFORMANCE<-merge(Bowler_Match_Details_Table, Player_Master_List, by.x = "BOWLER",by.y = "players_names")
+
+#Sort dataframe according to Wickets
+BOWLER_BEST_PERFORMANCE<- BOWLER_BEST_PERFORMANCE[order(BOWLER_BEST_PERFORMANCE$Wickets,decreasing = TRUE),]
+
+#Sort dataframe according to Player Name
+BOWLER_BEST_PERFORMANCE<- BOWLER_BEST_PERFORMANCE[order(BOWLER_BEST_PERFORMANCE$BOWLER,decreasing = FALSE),]
+
+#Tag best performance 
+FIRST=!duplicated(BOWLER_BEST_PERFORMANCE$BOWLER)
+
+#Filter out other performance 
+BOWLER_BEST_PERFORMANCE<-BOWLER_BEST_PERFORMANCE[FIRST,]
+
+#OVerall Bowler Performance Detail
+overallbowlerperformancedetails<-getoverallbowlerperformancedetails(Bowler_Match_Details_Table)
+
+overallbowlerperformancedetails<- overallbowlerperformancedetails[order(overallbowlerperformancedetails$Wkts,decreasing = TRUE),]
+
+##Combine Bowler overall performance with Best performance details
+overallbowlerperformancedetails<-merge(overallbowlerperformancedetails, BOWLER_BEST_PERFORMANCE, by.x = "BOWLER",by.y = "BOWLER")
+
+
+names(overallbowlerperformancedetails)<- c("BOWLER","Mat","Inn","Total_Balls","Total_Runs","Total_Wkts","Overall_Average","Overall_ECON","Overall_SR","EXTRA_Ball","Overs","BBM_RUNS","EXTRA_RUNS","BBM_Wickets","BBM_Ave","BBM_Econ","Against_Team","Ground","Match_Date","Match_Result","Team_Name")
+
+overallbowlerperformancedetails<-overallbowlerperformancedetails[,-c(10,11,13,17,18,19,20)]
+
+overallbowlerperformancedetails<- overallbowlerperformancedetails[order(overallbowlerperformancedetails$Total_Wkts,decreasing = TRUE),]
+
+head(overallbowlerperformancedetails)
+
+
+#All-Rounder  Performance Detail
+all_Rounder<-merge(overallbatsmanmatchdetails, overallbowlerperformancedetails, by.x = "BATSMAN",by.y = "BOWLER")
+
+
+names(all_Rounder)<- c("PLAYER","Total_Match_Bats","Batting_Inning","Total_Runs","HS","Total_Ball_Faced","Overall_Average","Total_Fours","Total_Sixs","Overall_SR","Hundreds","Fiftys","Duck_Out","Best_Runs_Scored","Best_Batting_SR","Team_Name","Total_Match_Bowled","Total_Bowling_Inn","Total_Balls","Total_Runs_Given","Total_Wkts","Overall_Bowling_Avg","Overall_Bowling_Econ","Overall_Bowling_SR","Best_RUNS_Given","Best_Wickets","Best_Bowling_Avg","Best_Bowling_Econ","Team_Name")
+
+##all_Rounder<-all_Rounder[,-c(16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37)]
+
+all_Rounder<-all_Rounder[with(all_Rounder,order(all_Rounder$Total_Wkts,all_Rounder$Total_Runs,decreasing = TRUE)),]
+
+head(all_Rounder)
+```
