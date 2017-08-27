@@ -1,0 +1,31 @@
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+```{r}
+## Check for Optimal number of clustre given the data
+
+mydata<- mtcars
+
+wss<- (nrow(mydata)-1)* sum(apply(mydata,2,var))
+
+for (i in 2:15) wss[i]<- sum(kmeans(mydata,center=i)$withinss)
+
+plot(1:15,wss, type="b", xlab=" Number of Clusters",ylab="Within groups sum of square", main="Assessing the optimal number of clusters with the elbow methode",
+     pch=10, cex=2)
+
+
+hc<- hclust(dist(mtcars))
+plot(hc)
+```
+
+```{r}
+plot(hc, hang=-1)
+
+rect.hclust(hc,k=5)
+group<-cutree(hc,k=5)
+```
+

@@ -1,0 +1,52 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(class)
+library(e1071)
+
+data("iris")
+str(iris)
+
+pairs(iris[1:4],main="Iris Data correlation",col=iris$Species)
+
+classifier<- naiveBayes(iris[,1:4], iris[,5])
+classifier
+```
+```{r}
+table(predict(classifier,iris[,-5]),iris[,5])
+
+table(predict(classifier,iris[,2:3]),iris[,5])
+
+table(predict(classifier,iris[,3:4]),iris[,5])
+
+```
+```{r}
+## Titanic Data Set
+set.seed(123)
+rows<-seq(from=1,to=nrow(titanic.raw),by=1)
+train_rows<- sample(x=rows,size=(0.8*nrow(titanic.raw)))
+Train_Data <- titanic.raw[train_rows,]
+Test_Data <- titanic.raw[-train_rows,]
+
+str(titanic.raw)
+summary(titanic.raw)
+survival_classifier<- naiveBayes(Train_Data[,1:3], Train_Data[,4])
+
+survival_classifier
+
+table(predict(survival_classifier,Test_Data[,1:3]),Test_Data[,4])
+table(predict(survival_classifier,Test_Data[,1:2]),Test_Data[,4])
+table(predict(survival_classifier,Test_Data[,2:3]),Test_Data[,4])
+table(predict(survival_classifier,Test_Data[,c(1,3)]),Test_Data[,4])
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).

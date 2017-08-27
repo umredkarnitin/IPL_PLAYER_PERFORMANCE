@@ -1,0 +1,42 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+##install.packages("fpc")
+#install.packages("dbscan")
+#install.packages('factoextra')
+library(fpc)
+library(dbscan)
+library(factoextra)
+
+# Load the data 
+# Make sure that the package factoextra is installed
+data("multishapes", package = "factoextra")
+write.csv(multishapes,"F:\\Data Scientist\\Day9\\multishapes.csv")
+table(multishapes$shape)
+df <- multishapes[, 1:2]
+```
+
+```{r}
+library("fpc")
+# Compute DBSCAN using fpc package
+set.seed(123)
+db <- fpc::dbscan(df, eps = 0.15, MinPts = 5)
+# Plot DBSCAN results
+plot(db, df, main = "DBSCAN")
+
+##VS K-MEANS
+set.seed(7)
+kmean_cluster5<- kmeans(df,5,nstart = 100)
+kmean_cluster5
+
+
+plot(df, col = kmean_cluster5$cluster, cex = 1, pch = 1, lwd = 2)
+points(df, col = which, pch = 19)
+library(ggplot2)
+ggplot(df, col = kmean_cluster5$cluster, cex = 1, pch = 1, lwd = 2)
+
+```
+

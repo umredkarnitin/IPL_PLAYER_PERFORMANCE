@@ -1,0 +1,135 @@
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+install.packages("party")
+library(party)
+log2(.25)
+
+##Entropy of wind from john example
+
+-(9/14)*log2(9/14)-((5/14)*log2(5/14))
+
+
+##Entropy of Week wind
+-(9/14)*log2(9/14)-((5/14)*log2(5/14))
+
+## Information gain H(S|A) in oreder to decide which attribute will the best calssifier
+
+##H(S|HUMIDITY)=Entropy(S)-Weighted SUM(HUMIDITY VARIATE ENTROPY)
+ENTROPY_S<- -9/14*log2(9/14)-5/14*log2(5/14)
+ENTROPY_HUMIDITY_HIGH<- -3/7* log2(3/7)-(4/7)* log2(4/7)
+ENTROPY_HUMIDITY_NORMAL<- -((6/7)* log2(6/7))-((1/7)* log2(1/7))
+
+##H(S|HUMIDITY)=Entropy(S)- Weighted SUM(HUMIDITY VARIATE ENTROPY)
+H_S_HUMIDITY=ENTROPY_S - (7/14)*ENTROPY_HUMIDITY_HIGH -(7/14)*ENTROPY_HUMIDITY_NORMAL
+
+                  ##VS
+##H(S|WIND)=Entropy(S)-Weighted SUM(WIND VARIATE ENTROPY)
+ENTROPY_S<- -9/14*log2(9/14)-5/14*log2(5/14)
+ENTROPY_WIND_WEAK<- -6/8* log2(6/8)-(2/8)* log2(2/8)
+ENTROPY_WIND_STRONG<- -((3/6)* log2(3/6))-((3/6)* log2(3/6))
+
+##H(S|HUMIDITY)=Entropy(S)- Weighted SUM(WIND VARIATE ENTROPY)
+H_S_WIND=ENTROPY_S - (8/14)*ENTROPY_WIND_WEAK -(6/14)*ENTROPY_WIND_STRONG
+
+##SO HUMIDITY WILL BE THE more appropriate as compare to wind attribute since the information gained in case of Humidity is compartively/relatively high with respect to wind.
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+str(iris)
+set.seed(1234)
+
+ind<-sample(2,nrow(iris),replace = TRUE, prob = c(.7,.3))
+train<-iris[ind==1,]
+test<-iris[ind==2,]
+str(train)
+str(test)
+attach(iris)
+
+myFormula<-  Species~ Sepal.Length+Sepal.Width+Petal.Length+Petal.Width
+summary(myFormula)
+
+iris_ctree<-ctree(myFormula,data = train)
+str(iris_ctree)
+ctree
+table(predict(iris_ctree),train$Species)
+table(train$Species)
+print(iris_ctree)
+plot(iris_ctree)
+
+install.packages("tree")
+library(tree)
+
+t<- tree(myFormula)
+plot(t)
+t<-tree(myFormula,train)
+plot(t)
+text(t)
+```
+
+```{r}
+str(titanic.raw)
+set.seed(1234)
+
+ind<-sample(2,nrow(titanic.raw),replace = TRUE, prob = c(.7,.3))
+train<-titanic.raw[ind==1,]
+test<-titanic.raw[ind==2,]
+str(train)
+str(test)
+attach(titanic.raw)
+
+myFormula<-  as.factor(Survived)~ as.factor(Age)+as.factor(Sex)+as.factor(Class)
+
+library(party)
+titanic.raw_ctree<-ctree(myFormula,data = train)
+str(titanic.raw_ctree)
+(titanic.raw_ctree)
+??ctree
+table(predict(titanic.raw_ctree),train$Survived)
+table(train$Survived)
+print(titanic.raw_ctree)
+plot(titanic.raw_ctree)
+t<-tree(myFormula,train)
+plot(t)
+text(t)
+
+
+## Random forest
+str(iris)
+
+set.seed(1234)
+## Split index to split
+ind<- sample(2,nrow(iris),replace = TRUE,prob = c(.7,.3))
+
+## 
+train<- iris[ind==1,]
+test<-iris[ind==2,]
+
+str(train)
+str(test)
+
+library(randomForest)
+iris.rf<- randomForest(factor(iris$Species)~.,data=iris,ntree=1000,importance=TRUE)
+
+??randomForest
+str(iris.rf)
+plot(iris.rf)
+legend("top",colnames(iris.rf$err.rate),col=1:4,cex=.8,fill=1:4)
+varImpPlot(iris.rf)
+
+predictions<- predict(iris.rf,newdata = test)
+
+cbind(test,predictions)
+table(predict(iris.rf,newdata = test),test$Species)
+```
+

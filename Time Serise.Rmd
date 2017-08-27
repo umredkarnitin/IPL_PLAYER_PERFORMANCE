@@ -1,0 +1,184 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+a<- ts(1:30, frequency = 12,start=c(2011,3))
+print(a)
+str(a)
+attributes(a)
+
+
+```
+
+
+```{r}
+plot(AirPassengers)
+str(AirPassengers)
+unlist(AirPassengers)
+
+write.csv(x = unlist(AirPassengers),file = "F:/Data Scientist/Day11/AirPassager.csv",sep =",")
+
+##Decompose time series
+
+apts<- ts(AirPassengers,frequency = 12)
+str(apts)
+
+f<- decompose(apts)
+str(f)
+
+plot(f)
+
+plot(f$figure)
+```
+
+```{r}
+install.packages("forecast")
+library(forecast)
+
+autoapts <- auto.arima(apts)
+write.csv(apts,"F:\\Data Scientist\\Day11\\apts.csv")
+??auto.arima
+summary (autoapts)
+
+fre<- forecast(autoapts)
+str(fre)
+plot(fre)
+
+##
+tsData <- EuStockMarkets[, 1] # ts data
+write.csv(EuStockMarkets,"F:\\Data Scientist\\Day11\\EuStockMarkets.csv")
+decomposedRes <- decompose(tsData, type="mult") # use type = "additive" for additive components
+plot (decomposedRes) # see plot below
+stlRes <- stl(tsData, s.window = "periodic")
+```
+```{r}
+fit <- auto.arima(WWWusage)
+plot(forecast(fit,h=20))
+
+```
+```{r}
+fit <- Arima(WWWusage,c(3,1,0))
+write.csv(WWWusage,"F:\\Data Scientist\\Day11\\WWWusage.csv")
+plot(forecast(fit))
+
+library(fracdiff)
+x <- fracdiff.sim( 100, ma=-.4, d=.3)$series
+fit <- arfima(x)
+plot(forecast(fit,h=30))
+
+```
+```{r}
+## Importing .sas7bat data file into R
+library(haven)
+
+aircel<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/aircel.sas7bdat")
+
+airtel	<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/airtel.sas7bdat")
+
+bsnl	<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/bsnl.sas7bdat")
+
+idea	<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/idea.sas7bdat")
+
+ttml	<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/ttml.sas7bdat")
+
+vodafone	<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/vodafone.sas7bdat")
+
+virginmo	<-haven::read_sas("F:/Abhishek/Forecasting/report/Rev Forecasting/RBT - new revenue sheet/virginmo.sas7bdat")
+
+
+aircel$date<- as.Date(aircel$date, origin="1960-01-01")
+airtel$date<- as.Date(airtel$date, origin="1960-01-01")
+bsnl$date<- as.Date(bsnl$date, origin="1960-01-01")
+idea$date<- as.Date(idea$date, origin="1960-01-01")
+ttml$date<- as.Date(ttml$date, origin="1960-01-01")
+vodafone$date<- as.Date(vodafone$date, origin="1960-01-01")
+virginmo$date<- as.Date(virginmo$date, origin="1960-01-01")
+
+
+order(aircel$date,decreasing = FALSE)
+order(airtel$date,decreasing = FALSE)
+order(bsnl$date,decreasing = FALSE)
+order(idea$date,decreasing = FALSE)
+order(ttml$date,decreasing = FALSE)
+order(vodafone$date,decreasing = FALSE)
+order(virginmo$date,decreasing = FALSE)
+
+
+##Decompose time series
+aircel
+
+for( i in c("aircel","airtel","bsnl","idea","ttml","vodafone","virginmo")){
+  apts<- ts(get(i)$REVENUE,frequency = 4)
+  str(apts)
+
+  f<- decompose(apts)
+  str(f)
+
+  plot(f)
+}
+apts<- ts(aircel[,3],frequency = 4)
+str(apts)
+
+f<- decompose(apts)
+str(f)
+
+plot(f)
+
+plot(f$figure)
+
+```
+What is Autocorrelation and Partial-Autocorrelation?
+```{r}
+# both acf() and pacf() generates plots by default
+str(aircel)
+acfRes <- acf(aircel[,3],na.action = na.omit) # autocorrelation
+
+pacfRes <- pacf(aircel[,3],na.action = na.omit) # autocorrelation
+
+ccfRes <- ccf(x, y, ylab = "cross-correlation") # computes cross correlation between 2 timeseries.
+```
+How to de-trend a time series ?
+
+```{r}
+trModel <- lm(JohnsonJohnson ~ c(1:length(JohnsonJohnson)))
+write.csv(JohnsonJohnson,"F:\\Data Scientist\\Day11\\JohnsonJohnson.csv")
+plot(resid(trModel), type="l")  # resid(trModel) contains the de-trended series.
+```
+How to de-seasonalize a time series in R?
+```{r}
+ts (1:10, frequency = 12, start = 1990) # freq 12 => Monthly data. 
+
+ts.stl <- stl(ts,"periodic")  # decompose the TS
+ts.sa <- seasadj(ts.stl)  # de-seasonalize
+
+
+```
+How to test if a time series is stationary?
+```{r}
+library(tseries)
+adf.test(tsData) # p-value < 0.05 indicates the TS is stationary
+write.csv(tsData,"F:\\Data Scientist\\Day11\\tsData.csv")
+kpss.test(tsData)
+
+# Seasonal Differencing
+nsdiffs(AirPassengers)  # number for seasonal differencing needed
+AirPassengers_seasdiff <- diff(AirPassengers, lag=frequency(AirPassengers), differences=1)  # seasonal differencing
+
+plot(ap_seasdiff, type="l", main="Seasonally Differenced")  # still not stationary!
+
+# Make it stationary
+ndiffs(AirPassengers_seasdiff)  # number of differences need to make it stationary
+
+stationaryTS <- diff(AirPassengers_seasdiff, differences= 1)
+plot(stationaryTS, type="l", main="Differenced and Stationary")  # appears to be stationary
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).

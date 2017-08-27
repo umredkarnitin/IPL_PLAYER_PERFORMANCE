@@ -1,0 +1,63 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(DMwR)
+library(VIM)
+detach("package:VIM", unload=TRUE)
+
+str(iris)
+data(iris)
+set.seed(1)
+rows<-seq(from=1,to=nrow(iris),by=1)
+train_rows<- sample(x=rows,size=(0.7*nrow(iris)))
+Train_Data <- iris[train_rows,]
+Test_Data <- iris[-train_rows,]
+str(Train_Data)
+str(Test_Data)
+summary(iris)
+
+nn1<- DMwR::kNN(Species~.,train = Train_Data,test = Test_Data,norm=FALSE,k=1)
+table(nn1,Test_Data$Species)
+
+## A 3 Nearest neighbour model with no normalization
+nn3<- DMwR::kNN(Species ~ .,Train_Data,Test_Data,norm=FALSE,k=3)
+nn3
+## Confusion Matrix  Tables for accuracy
+table(nn3,Test_Data$Species)
+confusionMatrix(nn3,Test_Data$Species)
+
+?kNN
+
+## now 5  Nearest neighbour model with no normalization
+nn5<- DMwR::kNN(Species~.,train = Train_Data,test = Test_Data,norm=FALSE,k=5)
+
+## Confusion Matrix  for accuracy
+table(nn5,Test_Data$Species)
+
+## now 5  Nearest neighbour model WITH normalization
+nn5_norm<- DMwR::kNN(Species~.,train = Train_Data,test = Test_Data,norm=TRUE,k=5)
+
+## Confusion Matrix  for accuracy
+table(nn5_norm,Test_Data$Species)
+
+## Caret Library
+caret::confusionMatrix(data =Test_Data$Species,nn3)
+library(caret)
+??caret
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+memory.limit()
+```
+

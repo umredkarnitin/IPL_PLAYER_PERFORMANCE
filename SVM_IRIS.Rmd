@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(e1071)
+str(iris)
+attach(iris)
+
+##Training on IRIS random sample is equivalent to training on complete dataset don't do this else
+x<- subset(iris, select = -Species)
+y<- Species
+
+SVM_IRIS<- svm(Species~., data = iris)
+summary(SVM_IRIS)
+??svm
+
+```
+
+
+```{r}
+SVM_IRIS1<- svm(x,y)
+summary(SVM_IRIS1)
+
+predict(SVM_IRIS1,x)
+
+table(y,predict(SVM_IRIS,x))
+
+```
+```{r}
+svm_tune<- tune(svm,
+                train.x = x,
+                train.y = y,
+                kernel="rbf",
+                ranges = list(cost=10^(-1:2),gamma=c(.5,1,2)))
+
+?tune
+str(svm_tune)
+
+SVM_IRIS_FINE_TUNE<- svm (Species ~ .,
+                     data=iris,
+                     cost=1,
+                     gamma=.5)
+
+summary(SVM_IRIS_FINE_TUNE)
+
+table(Species,predict(SVM_IRIS_FINE_TUNE,x))
+
+plot (SVM_IRIS_FINE_TUNE, 
+      data = iris, 
+      Petal.Width ~ Petal.Length)
+
+## with Radial kernel
+plot (SVM_IRIS_FINE_TUNE, 
+      data = iris, 
+      Petal.Width ~ Petal.Length,
+      slice = list(Sepal.Width=3,Sepal.Length=4))
+
+plot (SVM_IRIS_FINE_TUNE, 
+      data = iris,
+      Petal.Width ~ Petal.Length,
+      slice = list(Sepal.Width=3,Sepal.Length=4))
+
+points(SVM_IRIS_FINE_TUNE$index,
+      pch=40)
+
+library(caret)
+confusionMatrix(Species,predict(SVM_IRIS_FINE_TUNE,x))
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).

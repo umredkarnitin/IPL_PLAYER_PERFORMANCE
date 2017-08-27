@@ -1,0 +1,95 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(datasets)
+## Inspect Data structure
+str(attitude)
+write.csv(attitude,"F:\\Data Scientist\\Day9\\attitude.csv")
+?attitude
+attributes(attitude)
+dat<-attitude[,2:4]
+str(dat)
+## plot subset data
+plot(dat, main="% of favourable response to learning & Privilege", pch=20,cex=2)
+
+## 3 D Plot
+library(scatterplot3d)
+with(dat, {
+   scatterplot3d(complaints,   # x axis
+                 privileges,     # y axis
+                 learning,    # z axis
+                 color="blue", pch=19, # filled blue circles
+                 type="h",
+                 main="3-D Scatterplot Example 1")
+})
+
+##pERFORM kmeans clustering with 2 clusters
+set.seed(7)
+kmean_cluster<- kmeans(dat,2,nstart = 100)
+kmean_cluster
+
+summary(kmean_cluster)
+##Plt results
+plot(dat,col=kmean_cluster$cluster)
+
+with(dat, {
+   scatterplot3d(complaints,   # x axis
+                 privileges,     # y axis
+                 learning,    # z axis
+                 color=kmean_cluster$cluster, pch=19, # filled blue circles
+                 type="h",
+                 main="3-D Scatterplot Example 1")
+})
+
+
+for(i in 1:15){
+set.seed(7)
+kmean_cluster<- kmeans(dat,i,nstart = 100)
+print(kmean_cluster)
+}
+
+
+## Check for Optimal number of clustre given the data
+
+mydata<- dat
+
+wss<- (nrow(mydata)-1)* sum(apply(mydata,2,var))
+
+for (i in 2:15) wss[i]<- sum(kmeans(mydata,center=i)$withinss)
+
+plot(1:15,wss, type="b", xlab=" Number of Clusters",ylab="Within groups sum of square", main="Assessing the optimal number of clusters with the elbow methode",
+     pch=10, cex=2)
+
+##pERFORM kmeans clustering with 6 clusters
+set.seed(7)
+kmean_cluster<- kmeans(dat,6,nstart = 100)
+kmean_cluster
+
+summary(kmean_cluster)
+##Plt results
+plot(dat,kmean_cluster$centers,col=kmean_cluster$cluster,main="K-means wresult with 6 clusters",pch=10,cex=2)
+points(kmean_cluster$centers)
+
+data(attitude)
+set.seed(1)
+rows<-seq(from=1,to=nrow(attitude),by=1)
+train_rows<- sample(x=rows,size=(0.7*nrow(attitude)))
+Train_Data <- attitude[train_rows,]
+Test_Data <- attitude[-train_rows,]
+str(Train_Data)
+str(Test_Data)
+summary(attitude)
+
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).

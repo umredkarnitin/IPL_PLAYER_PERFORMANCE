@@ -1,0 +1,123 @@
+Title
+========================================================
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring web pages (click the **MD** toolbar button for help on Markdown).
+
+When you click the **Knit HTML** button a web page will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(PerformanceAnalytics)
+library(car)
+library(nortest)
+install.packages("mice")
+library(mice)
+
+MT_HBAT<- foreign::read.spss("E:/Multivariant ANalysis/Multivariate_Data_Analysis_7e_Datasets_and_Documentation/HBAT_MISSING.sav",to.data.frame = TRUE)
+MT_HBAT<- as.data.frame(MT_HBAT)
+original <- MT_HBAT
+
+str(MT_HBAT)
+names(MT_HBAT)
+dim(MT_HBAT)
+head(MT_HBAT)
+sum(is.na(MT_HBAT))
+```
+
+You can also embed plots, for example:
+
+```{r fig.width=7, fig.height=6}
+# Pattern of missing values
+library(mice)
+md.pattern(MT_HBAT)
+```
+
+```{r}
+##There are really four ways you can handle missing values:
+##1. Deleting the observations
+apply deletion only when:
+1. Have sufficent data points, so the model doesn't lose power.
+2. Not to introduce bias (meaning, disproportionate or non-representation of classes).
+'
+
+summary(lm(v1~.-NMISS,data=MT_HBAT,na.action=na.omit))
+```
+
+
+```{r}
+2. Deleting the variable
+If a particular variable is having more missing values that rest of the variables in the dataset, and, if by removing that one variable you can save many observations.to remove that particular variable, unless it is a really important predictor that makes a lot of business sense.
+
+summary(lm(v1~.-v11-NMISS,data=MT_HBAT,na.action=na.omit))
+
+```
+
+
+```{r}
+
+3. Imputation with mean / median / mode
+Replacing the missing values with the mean / median / mode is a crude way of treating missing values. Depending on the context, like if the variation is low or if the variable has low leverage over the response, such a rough approximation is acceptable and could possibly give satisfactory results.
+
+library(Hmisc)
+impute(MT_HBAT$v1,mean)
+impute(MT_HBAT$v1, median)  # median
+impute(MT_HBAT$v1, 20)  # replace specific number
+##Lets compute the accuracy when it is imputed with mean
+install.packages("DMwR")
+library(DMwR)
+
+actuals <- original$v1[is.na(MT_HBAT$v1)]
+predicteds <- rep(mean(MT_HBAT$v1,na.rm=T),length(actuals))
+
+regr.eval(actuals,predicteds)
+```
+
+```{r}
+4. Prediction
+Prediction is most advanced method to impute your missing values and includes different approaches such as: kNN Imputation, rpart, and mice.
+
+4.1. kNN Imputation
+
+For every observation to be imputed, it identifies 'k' closest observations based on the euclidean distance and computes the weighted average (weighted based on distance) of these 'k' obs.
+
+library(DMwR)
+# perform knn imputation.
+knnOutput <- knnImputation(MT_HBAT[,!names(MT_HBAT) %in% "v1"])
+anyNA(knnOutput)
+##Lets compute the accuracy.
+actuals <- original$v1[is.na(MT_HBAT$v1)]
+predicteds <- knnOutput[is.na(MT_HBAT$v1), "ptratio"]
+regr.eval(actuals, predicteds)
+
+##The mean absolute percentage error (mape) has improved by ~ 39% compared to the imputation by mean.Good.
+
+##REASON NOT to use knn Imputation:
+##The limitation with DMwR::knnImputation is that it sometimes may not be appropriate to use when the missing value comes from a factor variable.
+
+
+```
+
+
+```{r}
+4.2 rpart
+The advantage with rpart is that you just need only one of the variables to be non NA in the predictor fields.
+Both rpart and mice has flexibility to handle that scenario. 
+we are going to use rpart to predict the missing values instead of kNN.
+To handle factor variable, we can set the method=class while calling rpart().For numeric, we use, method=anova.
+
+library(rpart)
+str(MT_HBAT)
+
+class_mod <- rpart(rad ~ . - medv, data=MT_HBAT[!is.na(MT_HBAT$rad), , method="class", na.action=na.omit)  # since rad is a factor
+
+
+anova_mod <- rpart(v1 ~ . - v8, data=MT_HBAT[!is.na(MT_HBAT$v1), ], method="anova",na.action=na.omit)
+
+v1_pred <- predict(anova_mod, MT_HBAT[is.na(MT_HBAT$v1), ])
+
+actuals <- original$v1[is.na(MT_HBAT$v1)]
+predicteds <- v1_pred
+regr.eval(actuals, predicteds)
+```
+
+```{r}
+```

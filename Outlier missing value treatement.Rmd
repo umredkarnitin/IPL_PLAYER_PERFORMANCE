@@ -1,0 +1,215 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+install.packages("mlbench")
+install.packages("Hmisc")
+install.packages("Amelia")
+install.packages("DMwR")
+
+library(Amelia)
+library(Hmisc)
+library(mlbench)
+library(DMwR)
+library(PerformanceAnalytics)
+library(VIM)
+require(MASS)
+library(rpart)
+?Boston
+str(Boston)
+dim(Boston)
+summary(Boston)
+sum(is.na(Boston))
+chart.Correlation(Boston,method = "pearson")
+
+BostonHousing<- Boston
+set.seed(100)
+BostonHousing[sample(1:nrow(BostonHousing),40),"rad"]<-NA
+BostonHousing[sample(1:nrow(BostonHousing),40),"ptratio"]<-NA
+
+sum(is.na(BostonHousing))
+summary(BostonHousing)
+bhsna<-BostonHousing
+missmap(BostonHousing)
+
+
+aggr_map<- aggr(BostonHousing)
+aggr_map<- aggr(BostonHousing,col=c('navyblue','red'),numbers=TRUE,label=names(BostonHousing),cex.axis=.7,gap=.3,ylabel=c("Histogram of Missing Value", "Pattern"))
+
+
+```
+```{r}
+##1 Delete observation
+lm(medv~ptratio+rad,data=BostonHousing, na.action = na.omit)
+
+## Delete Variable..... ensure no bias
+BostonHousing$ptratio<-impute(BostonHousing$ptratio,mean)## Replace with mean
+BostonHousing$rad<-impute(BostonHousing$rad,mean)## Replace with mean
+
+summary(BostonHousing)
+hist(BostonHousing$ptratio)
+
+```
+```{r}
+install.packages("DMwR")
+library(DMwR)
+BostonHousing<- bhsna
+summary(BostonHousing)
+actual<- Boston$ptratio[is.na(BostonHousing$ptratio)]
+predicteds<- rep(mean(BostonHousing$ptratio,na.rm=T),length(actual))
+mean_error_yardstick<-regr.eval(actual,predicteds)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+knnoutput<- knnImputation(BostonHousing[,!names(BostonHousing) %in% "medv"])
+anyNA(knnoutput)
+```
+The limitation with DMwR::knnImputation is that it sometimes may not be appropriate to use when the missing value comes from a factor variable. Both rpart and mice has flexibility to handle that scenario. 
+
+```{r}
+## Let chekc the accuracy
+actual<- Boston$ptratio[is.na(BostonHousing$ptratio)]
+predicteds<- knnoutput[is.na(BostonHousing$ptratio),"ptratio"]
+mean_error_yardstick<-regr.eval(actual,predicteds)
+mean_error_yardstick
+```
+The advantage with rpart is that you just need only one of the variables to be non NA in the predictor fields.
+The idea here is we are going to use rpart to predict the missing values instead of kNN. To handle factor variable, we can set the method=class while calling rpart(). For numerics, we use, method=anova. Here again, we need to make sure not to train rpart on response variable (medv).
+```{r}
+library(rpart)
+?Boston
+str(BostonHousing)
+class_mod <- rpart(rad ~ . - medv, data=BostonHousing[!is.na(BostonHousing$rad), ],method="class", na.action=na.omit) 
+
+anova_mod <- rpart(ptratio ~ . - medv, data=BostonHousing[!is.na(BostonHousing$ptratio), ], method="anova", na.action=na.omit)
+
+rad_pred <- predict(class_mod, BostonHousing[is.na(BostonHousing$rad), ])
+ptratio_pred <- predict(anova_mod, BostonHousing[is.na(BostonHousing$ptratio), ])
+
+##Lets compute the accuracy for ptratio
+actuals <- Boston$ptratio[is.na(BostonHousing$ptratio)]
+predicteds <- ptratio_pred
+regr.eval(actuals, predicteds)
+
+##Lets compute the accuracy for rad
+actuals <- Boston$rad[is.na(BostonHousing$rad)]
+predicteds <- as.numeric(colnames(rad_pred)[apply(rad_pred, 1, which.max)])
+mean(actuals != predicteds)  # compute misclass error.
+
+```
+
+
+```{r}
+## But missing value may come form a factor variable use rpart or Mice
+library(mice)
+miceMod<- mice(data =BostonHousing[,!names(BostonHousing) %in% "medv"], method = "rf") 
+miceOutput<- complete(miceMod) ## Generate complete dataset
+anyNA(miceOutput) 
+
+actual<- Boston$ptratio[is.na(BostonHousing$ptratio)]
+predicteds<- miceOutput[is.na(BostonHousing$ptratio),"ptratio"]
+mean_error_yardstick<-regr.eval(actual,predicteds)
+mean_error_yardstick
+
+```
+
+Outlier  treament
+
+```{r}
+# DENSITY BASED APPROACH
+library(DMwR)
+iris2 <- iris[,1:4]
+str(iris2)
+?lofactor
+outlier.scores <- lofactor(iris2,k = 5) # local outlier 
+outliers <- order(outlier.scores, decreasing=T)[1:5]
+outliers
+print(outliers)
+iris2[outliers,]
+n <- nrow(iris2)
+
+labels <- 1:n
+labels[-outliers] <- "."
+biplot(prcomp(iris2), cex=1, xlabs=labels)
+pch <- rep(".", n)
+pch[outliers] <- "+"
+col <- rep("black", n)
+col[outliers] <- "red"
+pairs(iris2, pch=pch, col=col)
+boxplot(iris2)
+
+```
+
+```{r}
+url<-"http://rstatistics.net/wp-content/uploads/2015/09/ozone.csv"
+ozone <- read.csv(url)
+write.csv(ozone,"F:\\Data Scientist\\Day8\\ozone.csv")
+dim(ozone)
+str(ozone)
+
+# For categorical variable
+boxplot(ozone_reading ~ Month, data=ozone, main="Ozone reading across months")  # clear pattern is noticeable.
+boxplot(ozone_reading ~ Day_of_week, data=ozone, main="Ozone reading for days of week")  # this may not be significant, as day of week variable is a subset of the month var.
+
+
+# For continuous variable (convert to categorical if needed.)
+boxplot(ozone_reading ~ pressure_height, data=ozone, main="Boxplot for Pressure height (continuos var) vs Ozone" )
+
+# DISTANCE BASED APPROACH FOR OUTLIER DETECTION
+
+mod <- lm(ozone_reading ~ pressure_height + Wind_speed +Humidity+Temperature_Sandburg+Temperature_ElMonte + Inversion_base_height + Pressure_gradient + Inversion_temperature + Visibility,data=ozone)
+cooksd <- cooks.distance(mod)
+plot(cooksd, pch="*", cex=2, main="Influential Obs by Cooks distance")  # plot cook's distance
+##Threshold Need to defined
+4*mean(cooksd, na.rm=T)
+abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+
+influential <- as.numeric(names(cooksd)[(cooksd > 4*mean(cooksd, na.rm=T))])  # influential row numbers
+head(ozone[influential, ])  # influential observations.
+
+```
+
+```{r}
+# USING STATISTICS
+library(outliers)
+set.seed(1234)
+x = rnorm(10)
+scores(x)  # z-scores => (x-mean)/sd
+scores(x, type="chisq")  # chi-sq scores => (x - mean(x))^2/var(x)
+scores(x, type="t")  # t scores
+
+scores(x, type="chisq", prob=0.9)  # beyond 90th %ile based on chi-sq
+
+scores(x, type="chisq", prob=0.95)  # beyond 95th %ile
+scores(x, type="z", prob=0.95)  # beyond 95th %ile based on z-scores
+scores(x, type="t", prob=0.95)  # beyond 95th %ile based on t-scores
+
+```
+
+```{r}
+### TREATMENT OF OUTLIERS VIA CAPPING TECHNIQUE ########
+x <- ozone$pressure_height
+
+qnt <- quantile(x, probs=c(.25, .75), na.rm = T)
+caps <- quantile(x, probs=c(.05, .95), na.rm = T)
+H <- 1.5 * IQR(x, na.rm = T)
+
+# for every x where assign x < (qnt[1] - H) assign 5pc
+x[x < (qnt[1] - H)] <- caps[1]
+
+# for every x where assign x < (qnt[1] + H) assign 95pc
+x[x > (qnt[2] + H)] <- caps[2]
+
+outlier(x)
+```
+
